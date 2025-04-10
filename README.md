@@ -2,7 +2,7 @@
 ## Introduction
 This project provides a Python implementation of the CRYSTALS Kyber algorithm, with plans to include the Dilithium algorithm in the future. The current focus is on implementing the core of Kyber, with other components to follow.
 
-The goal is to offer a clear, educational implementation. For theoretical background and further elaborations, refer to my blog at [ADDRESS]. This repository and the blog are designed to be used together.
+The goal is to offer a clear, educational implementation. For theoretical background and further elaborations, refer to my [blog](https://jani.isohanni.fi/crystals-the-gently-introduction/). This repository and the blog are designed to be used together.
 
 If you are looking for code for production purposes, you might want to consult other resources.
 
