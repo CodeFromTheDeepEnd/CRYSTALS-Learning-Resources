@@ -1,5 +1,6 @@
 
-class KyberParams:
+class KyberParams():
+    """ Store the CRYSTALS-Kyber and later Dilithium parameters."""
     def __init__(self, k, n, q, eta1, eta2, du, dv):
         self.k = k      # module rank
         self.n = n      # polynomial degree

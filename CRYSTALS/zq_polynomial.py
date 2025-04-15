@@ -1,4 +1,4 @@
-from .zq import Zq
+from CRYSTALS.zq import Zq
 
 class ZqPolynomial:
     """ Polynomial in the polynomial ring Z_q[x]/(x^n+1)
@@ -24,6 +24,14 @@ class ZqPolynomial:
         # n from (x^n+1)
         self.n = len(coefficients)
 
+    def extract_coefficients_int(self):
+        """" Extracts the coefficients of the polynomial and returns
+            them as a list of integers."""
+        coefficients_int = []
+        for i in range(self.n):
+            coefficients_int.append(self.coefficients[i].value)
+        return coefficients_int
+
     @classmethod
     def random_uniform(cls, n, q):
         """Creates and returns a new polynomial whose coefficients are drawn from uniform distribution"""
@@ -31,16 +39,55 @@ class ZqPolynomial:
         coeffs = [Zq.random_uniform(q) for _ in range(n)]
         return cls(q, coeffs)
 
+    def is_equal_to(self, other):
+        """ Compares two polynomials for equality. Will check n, q and coefficients."""
+        if not isinstance(other, ZqPolynomial):
+            print(f"ZqPolynomial.is_equal_to: Other is not ZqPolynomial")
+            return False
+
+        if self.n != other.n:
+            print(f"ZqPolynomial.is_equal_to: Different n values")
+            return False
+
+        if self.q != other.q:
+            print(f"ZqPolynomial.is_equal_to: Different q values")
+            return False
+
+        for i in range(self.n):
+            if self.coefficients[i].value != other.coefficients[i].value:
+                print(f"ZqPolynomial.is_equal_to: Different coefficients at ({i})")
+                return False
+
+        return True
+
+    @classmethod
+    def random_binomial_xof(cls, n, q, eta, bytes_to_use):
+        """Creates and returns a new polynomial whose coefficients are drawn from
+            CBD-distribution. This method uses the XOF-instance to sample the bits."""
+        coeffs = []
+        start_index = 0
+        end_index = 2*((eta//8) + 1)
+
+        for i in range(n):
+            coeffs.append(Zq.random_binomial_xof(q, eta, bytes_to_use[start_index:end_index]))
+            start_index=end_index
+            end_index += 2*((eta//8) + 1)
+
+        result = cls(q,coeffs)
+        result = result.to_symmetric()
+        return result
+
     @classmethod
     def random_binomial(cls, n, q, eta):
-        """Creates and returns a new polynomial whose coefficients are drawn from binomial distribution"""
+        """Creates and returns a new polynomial whose coefficients are drawn from
+            CBD-distribution"""
         coeffs = [Zq.random_binomial(q, eta) for _ in range(n)]
         result = cls(q,coeffs)
         result = result.to_symmetric()
         return result
 
     def to_symmetric(self):
-        """ Change polynomial to symmetric form """
+        """ Change coefficients to symmetric form """
         for i in range(len(self.coefficients)):
             self.coefficients[i] = self.coefficients[i].to_symmetric()
         return self
@@ -51,15 +98,19 @@ class ZqPolynomial:
             self.coefficients[i] = self.coefficients[i].round()
         return self
 
-    def at(self, i):
-        """ Return the coefficient a_1 of term a_ix^i.
-            Notice that a_i is of type Zq."""
-        if not isinstance(i, int):
-            raise TypeError("Exponent must be integer")
-        if i > -1 and i < len(self.coefficients):
-            return self.coefficients[i]
-        else:
-            raise ValueError("Exponent does not exist")
+    def compress(self, d):
+        """ Compress the coefficients"""
+        for i in range(len(self.coefficients)):
+            self.coefficients[i] = self.coefficients[i].compress(d)
+        return self
+
+    def decompress(self, d):
+        """ Decompress the coefficients"""
+        for i in range(len(self.coefficients)):
+            self.coefficients[i] = self.coefficients[i].decompress(d)
+        return self
+
+
 
     def __repr__(self):
         result = ""
@@ -90,7 +141,6 @@ class ZqPolynomial:
         if len(result) > 0 and result[0] == "+":
             result = result[1:]
 
-#        result = f"q={self.q}, n={self.n}\n{result}"
         return result
 
     def get_coefficients(self):
@@ -125,6 +175,7 @@ class ZqPolynomial:
             new_coefficients.append(Zq(self.q,self.coefficients[i].get_value()-other.get_coefficients()[i].get_value()))
         return ZqPolynomial(self.q, new_coefficients)
 
+
     # The naive implementation. NTT-version will follow later.
     def __mul__(self, other):
         if not isinstance(other, ZqPolynomial):
@@ -156,10 +207,13 @@ class ZqPolynomial:
                     result[pos] += self.coefficients[i] * other.coefficients[j]
         return ZqPolynomial(self.q, result)
 
+
 if __name__ == "__main__":
-    A0 = ZqPolynomial(5, [4, 1, 2])
-    B0 = ZqPolynomial(5, [1, 2, 3])
-    print(f"A0*B0={A0*B0}")
+    f = ZqPolynomial(5, [3, 2, 4, 3, 0,0,0,0])
+    h = ZqPolynomial(5, [2, 1, 4, 4, 1,0,0,0])
+    print(f"f(x)+h(x)={f+h}")
+    print(f"f(x)-h(x)={f-h}")
+    print(f"f(x)h(x)={f*h}")
 
 
 
