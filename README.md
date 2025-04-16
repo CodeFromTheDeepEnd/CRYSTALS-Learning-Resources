@@ -10,7 +10,7 @@ If you are looking for code for production purposes, you want to consult other r
 - Core implementation of the Kyber algorithm.
 - Compression of A, u and v.
 - Fujisaki-Okamoto transform (KEM-scheme)
-- Example usage provided in `person.py`, demonstrating message encoding and decoding.
+- Example usage provided in `KEM-scheme.py`, demonstrating message encoding and decoding.
 ## Example Usage
 ```python
     KYBER512 = KyberParams(k=2, n=256, q=3329, eta1=3, eta2=2, du=10, dv=4)
