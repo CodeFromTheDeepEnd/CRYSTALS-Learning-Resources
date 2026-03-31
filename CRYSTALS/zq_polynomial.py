@@ -175,8 +175,6 @@ class ZqPolynomial:
             new_coefficients.append(Zq(self.q,self.coefficients[i].get_value()-other.get_coefficients()[i].get_value()))
         return ZqPolynomial(self.q, new_coefficients)
 
-
-    # The naive implementation. NTT-version will follow later.
     def __mul__(self, other):
         if not isinstance(other, ZqPolynomial):
             raise TypeError("Can only multiply with another polynomial")
@@ -187,6 +185,14 @@ class ZqPolynomial:
         if self.q != other.q:
             raise TypeError("Polynomials must be from the same ring")
 
+        # Use NTT for q=3329, naive multiplication otherwise
+        if self.q == 3329:
+            return self._mul_ntt(other)
+        else:
+            return self._mul_naive(other)
+
+    def _mul_naive(self, other):
+        """Naive polynomial multiplication with reduction mod x^n + 1"""
         n = len(self.coefficients)
         # Initialize result coefficients with zeros
         result = [Zq(self.q, 0) for _ in range(n)]
@@ -205,7 +211,153 @@ class ZqPolynomial:
                     result[pos] -= self.coefficients[i] * other.coefficients[j]
                 else:
                     result[pos] += self.coefficients[i] * other.coefficients[j]
+
         return ZqPolynomial(self.q, result)
+
+    def _mul_ntt(self, other):
+        """NTT-based polynomial multiplication for q=3329"""
+        # Transform both polynomials to evaluation form
+        eval_self = self._forward_ntt()
+        eval_other = other._forward_ntt()
+
+        # Point-wise multiplication in evaluation form
+        n = len(eval_self)
+        eval_product = [eval_self[i] * eval_other[i] for i in range(n)]
+
+        # Transform back to coefficient form
+        result = self._inverse_ntt(eval_product)
+
+        return ZqPolynomial(self.q, result)
+
+    def _forward_ntt(self):
+        """
+        Forward NTT transform: coefficient form → evaluation form
+        For q=3329, n=256, using primitive 256th root of unity
+        """
+        q = 3329
+        n = len(self.coefficients)
+
+        # For Kyber: q=3329, n=256
+        # Primitive 256th root of unity: ω = 17
+        # (17^128 ≡ -1 mod 3329, so 17^256 ≡ 1 mod 3329)
+        omega = 17
+
+        # Precompute powers of omega: ω^0, ω^1, ω^2, ..., ω^(n-1)
+        omega_powers = [Zq(q, 1)]
+        for i in range(1, n):
+            omega_powers.append(omega_powers[-1] * Zq(q, omega))
+
+        # Copy coefficients to working array
+        a = [Zq(q, c.value) if isinstance(c, Zq) else Zq(q, c) for c in self.coefficients]
+
+        # Bit-reversal permutation
+        a = self._bit_reverse_copy(a)
+
+        # Cooley-Tukey NTT
+        m = 2
+        while m <= n:
+            # Twiddle factor stride
+            step = n // m
+            for k in range(0, n, m):
+                for j in range(m // 2):
+                    # Butterfly operation
+                    t = omega_powers[step * j] * a[k + j + m // 2]
+                    u = a[k + j]
+                    a[k + j] = u + t
+                    a[k + j + m // 2] = u - t
+            m *= 2
+
+        return a
+
+    def _inverse_ntt(self, eval_form):
+        """
+        Inverse NTT transform: evaluation form → coefficient form
+        For q=3329, n=256, using inverse of primitive 256th root of unity
+        """
+        q = 3329
+        n = len(eval_form)
+
+        # Inverse of ω = 17 mod 3329
+        # Need: 17 * ω_inv ≡ 1 (mod 3329)
+        omega_inv = 1175  # 17^(-1) mod 3329
+
+        # Precompute powers of omega_inv
+        omega_inv_powers = [Zq(q, 1)]
+        for i in range(1, n):
+            omega_inv_powers.append(omega_inv_powers[-1] * Zq(q, omega_inv))
+
+        # Copy evaluation form to working array
+        a = [Zq(q, c.value) if isinstance(c, Zq) else Zq(q, c) for c in eval_form]
+
+        # Bit-reversal permutation
+        a = self._bit_reverse_copy(a)
+
+        # Cooley-Tukey with inverse twiddle factors
+        m = 2
+        while m <= n:
+            step = n // m
+            for k in range(0, n, m):
+                for j in range(m // 2):
+                    # Butterfly operation with inverse twiddle
+                    t = omega_inv_powers[step * j] * a[k + j + m // 2]
+                    u = a[k + j]
+                    a[k + j] = u + t
+                    a[k + j + m // 2] = u - t
+            m *= 2
+
+        # Scale by n^(-1) mod q
+        # For n=256, q=3329: 256^(-1) ≡ 3303 (mod 3329)
+        n_inv = Zq(q, 3303)
+        result = [coeff * n_inv for coeff in a]
+
+        return result
+
+    def _bit_reverse_copy(self, a):
+        """Bit-reversal permutation of array a"""
+        n = len(a)
+        bits = n.bit_length() - 1
+        result = [None] * n
+
+        for i in range(n):
+            # Reverse bits of i
+            rev = 0
+            for j in range(bits):
+                if i & (1 << j):
+                    rev |= 1 << (bits - 1 - j)
+            result[rev] = a[i]
+
+        return result
+
+    # The naive implementation. NTT-version will follow later.
+#    def __mul__(self, other):
+#        if not isinstance(other, ZqPolynomial):
+#            raise TypeError("Can only multiply with another polynomial")
+#
+#        if len(self.coefficients) != len(other.get_coefficients()):
+#            raise ValueError("Polynomials are of different size")
+#
+#        if self.q != other.q:
+#            raise TypeError("Polynomials must be from the same ring")
+#
+#        n = len(self.coefficients)
+#        # Initialize result coefficients with zeros
+#        result = [Zq(self.q, 0) for _ in range(n)]
+#
+#        # Perform polynomial multiplication
+#        for i in range(n):
+#            for j in range(n):
+#                # Position in the product
+#                pos = i + j
+#
+#                # If position exceeds n-1, we need to reduce modulo x^n + 1
+#                if pos >= n:
+#                    # When reducing mod x^n + 1, x^n = -1
+#                    # So x^(n+k) = -x^k
+#                    pos = pos - n
+#                    result[pos] -= self.coefficients[i] * other.coefficients[j]
+#                else:
+#                    result[pos] += self.coefficients[i] * other.coefficients[j]
+#        return ZqPolynomial(self.q, result)
 
 
 if __name__ == "__main__":

@@ -134,6 +134,7 @@ class Person():
         m_matrix = PolyMatrix(1, 1, self.kyber_params.q, self.kyber_params.n)
         m_matrix[(0, 0)] = ZqPolynomial(self.kyber_params.q, m_new)
 
+
         v = others_t.T @ self.r + self.e2 + m_matrix
         u = others_a_matrix.T @ self.r + self.e1
 

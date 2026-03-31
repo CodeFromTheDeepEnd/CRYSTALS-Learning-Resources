@@ -1,29 +1,43 @@
 # CRYSTALS-Learning-Resources
-## Introduction
-This project provides a Python implementation of the CRYSTALS Kyber algorithm, with plans to include the Dilithium algorithm in the future. The current focus is on implementing the core of Kyber, with other components to follow.
 
-The goal is to offer a clear, educational implementation in Python. For theoretical background and further elaborations, refer to my [blog](https://jani.isohanni.fi/crystals-the-gently-introduction/). This repository and the blog are designed to be used together.
+**Educational** Python implementation of post-quantum cryptographic algorithms from the CRYSTALS suite.
 
-If you are looking for code for production purposes, you want to consult other resources.
+## About
 
-## Current Features
-- Core implementation of the Kyber algorithm.
-- Compression of A, u and v.
-- Fujisaki-Okamoto transform (KEM-scheme)
-- Example usage provided in `KEM-scheme.py`, demonstrating message encoding and decoding.
-## Example Usage
+This repository implements the CRYSTALS-Kyber key encapsulation mechanism (KEM) in Python for learning purposes. The code prioritizes clarity over performance.
+
+**For detailed mathematical background**, see the accompanying blog post-series: [CRYSTALS: The Gentle Introduction](https://jani.isohanni.fi/crystals-the-gently-introduction/)
+
+The blog covers:
+- Modular algebra and lattice problems
+- Polynomial ring theory
+- Step-by-step algorithm explanation
+
+**Not for production use**
+
+## Features
+
+- Core Kyber algorithm (near-FIPS 203 compliant)
+- Compression of A, u, and v
+- Fujisaki-Okamoto transform (KEM scheme)
+- Working examples with key exchange
+
+## Quick Start
+
 ```python
-    KYBER512 = KyberParams(k=2, n=256, q=3329, eta1=3, eta2=2, du=10, dv=4)
+KYBER512 = KyberParams(k=2, n=256, q=3329, eta1=3, eta2=2, du=10, dv=4)
 
-    alice = Person("Alice", KYBER512)
-    bob = Person("Bob", KYBER512)
+alice = Person("Alice", KYBER512)
+bob = Person("Bob", KYBER512)
 
-    # The message to be transferred
-    u, v = bob.encrypt_kem(alice.A, alice.t)
-    k_bar = alice.decrypt_kem(u,v)
+# Key encapsulation
+u, v = bob.encrypt_kem(alice.A, alice.t)
+k_bar = alice.decrypt_kem(u, v)
 ```
-## Future work
 
-* Adding Number Theoretic Transform (NTT).
-* Implementation of the Dilithium algorithm.
+Run examples
+```bash
+python -m examples.simple_encryption
+python -m examples.KEM-scheme
+```
 
